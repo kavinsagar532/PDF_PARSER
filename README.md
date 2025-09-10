@@ -28,7 +28,7 @@ and generates validation reports to ensure data accuracy and completeness.
 # Run the Project
 - python main.py
 
-# Generated Files:  
+# Generated Files
 - Metadata: usb_pd_metadata.jsonl  
 - Table of Contents: usb_pd_toc.jsonl
 - Sections: usb_pd_spec.jsonl
