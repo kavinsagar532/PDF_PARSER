@@ -32,6 +32,7 @@ and generates validation reports to ensure data accuracy and completeness.
 - Metadata: usb_pd_metadata.jsonl  
 - Table of Contents: usb_pd_toc.jsonl
 - Sections: usb_pd_spec.jsonl
+- Pages: usb_pd_pages.jsonl
 - Validation Report: validation_report.xlsx
 
 # Author
