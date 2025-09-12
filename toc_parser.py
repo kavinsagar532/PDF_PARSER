@@ -1,64 +1,85 @@
 import re
+import json
+from typing import List, Dict, Tuple
 
 class TOCParser:
-    def __init__(self, doc_title="USB Power Delivery Specification Rev 3.2 V1.1"):
+    """Robust TOC parser that produces structured entries with page numbers."""
+
+    def __init__(self, doc_title: str = "Universal Serial Bus Power Delivery Specification"):
         self.doc_title = doc_title
 
-    def parse_toc(self, pages):
-        toc_entries = []
+    def _flatten_pages_to_lines(self, pages: List[Dict]) -> List[Tuple[int, str]]:
+        lines = []
+        for p in pages:
+            page_no = p.get("page") or p.get("page_number") or 0
+            text = p.get("text", "") or ""
+            for line in text.splitlines():
+                lines.append((page_no, line.rstrip()))
+        return lines
 
-        for page in pages:
-            lines = page["text"].splitlines()
-            for line in lines:
-                line = line.strip()
-                if not line:
-                    continue
-                if line.startswith("Figure") or line.startswith("Table"):
-                    continue
+    def _line_ends_with_page(self, line: str) -> bool:
+        return bool(re.search(r"(?:\.{2,}|\s{2,})(\d{1,4})\s*$", line)) or bool(re.search(r"\s+(\d{1,4})\s*$", line))
 
-                parts = line.rsplit(" ", 1)
-                if len(parts) != 2 or not parts[1].isdigit():
-                    continue
+    def _extract_from_buffer(self, buffer: str) -> Dict:
+        buf = buffer.strip()
+        m = re.match(r"^\s*(?P<section_id>\d+(?:\.\d+)*)[)\.\-]?\s*(?P<title>.+?)\s*(?:\.{2,}|\s{2,})(?P<page>\d{1,4})\s*$", buf)
+        if m:
+            return {"section_id": m.group("section_id").strip(),
+                    "title": m.group("title").strip().strip(". "),
+                    "page": int(m.group("page").strip()),
+                    "full_path": buf}
+        m = re.match(r"^\s*(?P<section_id>\d+(?:\.\d+)*)\s+(?P<title>.+?)\s+(?P<page>\d{1,4})\s*$", buf)
+        if m:
+            return {"section_id": m.group("section_id").strip(),
+                    "title": m.group("title").strip().strip(". "),
+                    "page": int(m.group("page").strip()),
+                    "full_path": buf}
+        m = re.match(r"^\s*(Annex|Appendix)\s+(?P<section_id>[A-Z0-9]+)[\.\s-]*\s*(?P<title>.+?)\s*(?:\.{2,}|\s{2,})(?P<page>\d{1,4})\s*$", buf, re.IGNORECASE)
+        if m:
+            sid = f"{m.group(1).capitalize()} {m.group('section_id')}"
+            return {"section_id": sid,
+                    "title": m.group("title").strip().strip(". "),
+                    "page": int(m.group("page")),
+                    "full_path": buf}
+        m = re.match(r"^(?P<title>.+?)\s*(?:\.{2,}|\s{2,})(?P<page>\d{1,4})\s*$", buf)
+        if m:
+            return {"section_id": None,
+                    "title": m.group("title").strip().strip(". "),
+                    "page": int(m.group("page")),
+                    "full_path": buf}
+        return {}
 
-                left, page_str = parts[0], parts[1]
-                page_num = int(page_str)
+    def parse_toc(self, pages: List[Dict]) -> List[Dict]:
+        lines = self._flatten_pages_to_lines(pages)
+        if not lines:
+            return []
 
-                tokens = left.split(maxsplit=1)
-                if len(tokens) < 2:
-                    continue
-                section_id, title = tokens[0], tokens[1]
+        start_idx = 0
+        for idx, (_, line) in enumerate(lines):
+            if re.search(r"\btable of contents\b|\bcontents\b", line, re.IGNORECASE):
+                start_idx = idx + 1
+                break
 
-                if not re.match(r"^\d+(\.\d+)*$", section_id):
-                    continue
-
-                title = re.sub(r"[.·]+", " ", title).strip()
-
-                level = section_id.count(".") + 1
-                parent_id = ".".join(section_id.split(".")[:-1]) if "." in section_id else None
-
-                toc_entries.append({
+        toc_entries: List[Dict] = []
+        idx = start_idx
+        max_idx = len(lines)
+        while idx < max_idx:
+            page, line = lines[idx]
+            entry = self._extract_from_buffer(line)
+            if entry:
+                # --- Schema fields in exact order ---
+                final_entry = {
                     "doc_title": self.doc_title,
-                    "section_id": section_id,
-                    "title": title,
-                    "page": page_num, 
-                    "level": level,
-                    "parent_id": parent_id,
-                    "full_path": f"{section_id} {title}"
-                })
-
-        print(f"Parsed {len(toc_entries)} ToC entries")
-        if toc_entries:
-            print("First entry:", toc_entries[0])
-            print("Last entry:", toc_entries[-1])
-        else:
-            print("No ToC entries found. Check regex or ToC formatting.")
-
+                    "section_id": entry.get("section_id"),
+                    "title": entry.get("title"),
+                    "page": entry.get("page"),
+                    "level": len(entry["section_id"].split(".")) if entry.get("section_id") else 1,
+                    "parent_id": ".".join(entry["section_id"].split(".")[:-1]) if entry.get("section_id") and "." in entry["section_id"] else None,
+                    "full_path": entry.get("full_path")
+                }
+                toc_entries.append(final_entry)
+            idx += 1
         return toc_entries
 
-
 if __name__ == "__main__":
-    from extractor import PDFExtractor
-    extractor = PDFExtractor("USB_PD_R3_2 V1.1 2024-10.pdf")
-    pages = extractor.extract_text(start_page=10, end_page=25)
-    toc_parser = TOCParser()
-    toc_entries = toc_parser.parse_toc(pages)
+    print("TOCParser module ready")
