@@ -1,7 +1,6 @@
 """Validation and report generation with improved OOP design."""
 
 # Standard library imports
-import os
 from typing import Any, Dict, List
 
 # Third-party imports
@@ -10,7 +9,7 @@ import pandas as pd
 # Local imports
 from base_classes import BaseProcessor
 from helpers import JSONLHandler
-from interfaces import ValidatorInterface
+from interfaces import ReportInterface
 
 
 class MetadataValidator:
@@ -141,7 +140,7 @@ class CoverageCalculator:
         return range(start, max(end, start) + 1)
 
 
-class Validator(BaseProcessor, ValidatorInterface):
+class Validator(BaseProcessor, ReportInterface):
     """Enhanced validator with better encapsulation and single responsibility."""
     
     def __init__(self, **file_paths):
@@ -172,8 +171,20 @@ class Validator(BaseProcessor, ValidatorInterface):
         """Validate processed data (implementation of interface method)."""
         return {"is_valid": data is not None, "errors": []}
     
-    def generate_report(self) -> Dict[str, Any]:
+    def calculate_statistics(self) -> Dict[str, Any]:
+        """Calculate processing statistics (implementation of interface method)."""
+        return {
+            "processed_count": self.processed_count,
+            "error_count": self.error_count,
+            "status": self.status,
+            "files_processed": len(self._file_paths)
+        }
+    
+    def generate_report(self, output_file: str = None) -> Dict[str, Any]:
         """Generate comprehensive validation report."""
+        if output_file:
+            self.output_path = output_file
+        
         self._set_status("generating")
         
         try:

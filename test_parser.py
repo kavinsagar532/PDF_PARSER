@@ -9,11 +9,9 @@ from unittest.mock import patch
 import pytest
 
 # Local imports
-from extractor import PDFExtractor
 from helpers import JSONLHandler
-from main import PDFPipeline
 from metadata_parser import MetadataParser
-from validation_report import ReportGenerator, Validator
+from validation_report import Validator
 
 
 class TestJSONLHandler:

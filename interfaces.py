@@ -1,8 +1,44 @@
-"""Core interfaces defining contracts for all PDF parser components."""
+"""Enhanced interfaces with improved separation of concerns and reduced coupling."""
 
 # Standard library imports
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Generator, Iterable, List, Optional
+from typing import Any, Dict, Generator, Iterable, List, Optional, Protocol
+
+
+class Configurable(Protocol):
+    """Protocol for configurable components."""
+    
+    def configure(self, **kwargs) -> None:
+        """Configure the component."""
+        ...
+    
+    def get_config(self, key: str, default: Any = None) -> Any:
+        """Get configuration value."""
+        ...
+
+
+class Cacheable(Protocol):
+    """Protocol for components that support caching."""
+    
+    def enable_cache(self) -> None:
+        """Enable caching."""
+        ...
+    
+    def disable_cache(self) -> None:
+        """Disable caching."""
+        ...
+    
+    def clear_cache(self) -> None:
+        """Clear cached data."""
+        ...
+
+
+class Loggable(Protocol):
+    """Protocol for components with logging capabilities."""
+    
+    def set_log_level(self, level: str) -> None:
+        """Set logging level."""
+        ...
 
 
 class ExtractorInterface(ABC):
@@ -57,6 +93,41 @@ class ProcessorInterface(ABC):
     @abstractmethod
     def get_stats(self) -> Dict[str, Any]:
         """Get processing statistics."""
+        raise NotImplementedError
+
+
+class TextProcessorInterface(ABC):
+    """Interface for text processing utilities."""
+    
+    @abstractmethod
+    def split_into_lines(self, text: str) -> List[str]:
+        """Split text into lines."""
+        raise NotImplementedError
+    
+    @abstractmethod
+    def clean_text(self, text: str) -> str:
+        """Clean and normalize text."""
+        raise NotImplementedError
+    
+    @abstractmethod
+    def extract_numbers(self, text: str) -> List[int]:
+        """Extract numbers from text."""
+        raise NotImplementedError
+
+
+class ValidationInterface(ABC):
+    """Interface for validation operations."""
+    
+    @abstractmethod
+    def validate_required_fields(self, data: Dict[str, Any], 
+                                required_fields: List[str]) -> List[str]:
+        """Validate required fields."""
+        raise NotImplementedError
+    
+    @abstractmethod
+    def validate_data_types(self, data: Dict[str, Any], 
+                           type_specs: Dict[str, type]) -> List[str]:
+        """Validate data types."""
         raise NotImplementedError
 
 
@@ -123,17 +194,17 @@ class FileIOInterface(ABC):
         raise NotImplementedError
 
 
-class ValidatorInterface(ABC):
-    """Interface for validation and report generation."""
+class ReportInterface(ABC):
+    """Interface for report generation components."""
     
     @abstractmethod
-    def generate_report(self) -> Dict[str, Any]:
-        """Generate validation report."""
+    def generate_report(self, output_file: str) -> Dict[str, Any]:
+        """Generate and save validation report."""
         raise NotImplementedError
     
     @abstractmethod
-    def validate_data(self, data: Any) -> Dict[str, Any]:
-        """Validate processed data."""
+    def calculate_statistics(self) -> Dict[str, Any]:
+        """Calculate processing statistics."""
         raise NotImplementedError
 
 
@@ -150,3 +221,17 @@ class PipelineInterface(ABC):
     def pipeline_status(self) -> Dict[str, Any]:
         """Get current pipeline status."""
         raise NotImplementedError
+    
+    @property
+    @abstractmethod
+    def results(self) -> Dict[str, Any]:
+        """Get pipeline execution results."""
+        raise NotImplementedError
+
+
+# Type aliases for commonly used types
+PageData = Dict[str, Any]
+TOCEntry = Dict[str, Any]
+SectionData = Dict[str, Any]
+MetadataDict = Dict[str, Any]
+ValidationResult = Dict[str, Any]
