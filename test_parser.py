@@ -9,9 +9,11 @@ from unittest.mock import patch
 import pytest
 
 # Local imports
-from helpers import JSONLHandler
-from metadata_parser import MetadataParser
-from validation_report import Validator
+from parsers.extractor import PDFExtractor
+from utils.helpers import JSONLHandler
+from main import PDFPipeline
+from parsers.metadata_parser import MetadataParser
+from validation.validation_report import ReportGenerator, Validator
 
 
 class TestJSONLHandler:
@@ -46,8 +48,8 @@ class TestJSONLHandler:
 class TestMetadataParser:
     """Test class for MetadataParser with mocked dependencies."""
     
-    @patch('extractor.PDFExtractor.is_valid_pdf', new_callable=lambda: True)
-    @patch('extractor.PDFExtractor.extract_text')
+    @patch('parsers.extractor.PDFExtractor.is_valid_pdf', new_callable=lambda: True)
+    @patch('parsers.extractor.PDFExtractor.extract_text')
     def test_metadata_parsing(self, mock_extract, mock_is_valid):
         """Test metadata parsing with mocked PDF extraction."""
         # Setup mocks
@@ -110,7 +112,7 @@ class TestBackwardsCompatibility:
     
     def test_helper_class_compatibility(self):
         """Test that Helper class still works as before."""
-        from helpers import Helper
+        from utils.helpers import Helper
         
         # Test static methods exist
         assert hasattr(Helper, 'write_jsonl')

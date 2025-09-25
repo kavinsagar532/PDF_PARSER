@@ -1,186 +1,208 @@
-"""Enhanced main pipeline with better organization and error handling."""
+"""The main entry point and pipeline for the PDF parsing application.
+
+This module defines the `PDFPipeline` class, which coordinates the entire
+workflow from text extraction to validation report generation. It also
+contains the `main` function to execute the pipeline from the command line.
+"""
 
 # Standard library imports
 import sys
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 # Local imports
-from base_classes import BaseProcessor
-from extractor import PDFExtractor
-from helpers import JSONLHandler
-from interfaces import PipelineInterface
-from metadata_parser import MetadataParser
-from section_parser import SectionParser
-from toc_parser import TOCParser
-from validation_report import ReportGenerator
+from core.base_classes import BaseProcessor
+from parsers.extractor import PDFExtractor
+from utils.helpers import JSONLHandler
+from core.interfaces import PipelineInterface
+from parsers.metadata_parser import MetadataParser
+from parsers.section_parser import SectionParser
+from parsers.toc_parser import TOCParser
+from validation.validation_report import ReportGenerator
 
 
 class PDFPipeline(BaseProcessor, PipelineInterface):
-    """Enhanced PDF processing pipeline with better OOP design."""
-    
+    """An orchestrator for the entire PDF processing workflow.
+
+    composes all the necessary parser and processor components and
+    executes them in a predefined sequence. All internal state and helper
+    methods are private to ensure a clean public API.
+    """
+
     def __init__(self, pdf_file: str):
         super().__init__("PDFPipeline")
-        self._pdf_file = pdf_file
-        self._pipeline_steps = []
-        self._current_step = 0
-        self._results = {}
-        
-        # Initialize file handler
-        self._file_handler = JSONLHandler()
-        
-        # Initialize pipeline steps
-        self._initialize_pipeline_steps()
-    
-    @property
-    def pdf_file(self) -> str:
-        """Get PDF file path."""
-        return self._pdf_file
-    
+        self.__pdf_file = pdf_file
+        self.__results: Dict[str, Any] = {}
+        self.__current_step = 0
+
+        # Centralized file path configuration
+        self.__file_paths = {
+            "metadata": "usb_pd_metadata.jsonl",
+            "pages": "usb_pd_pages.jsonl",
+            "toc": "usb_pd_toc.jsonl",
+            "spec": "usb_pd_spec.jsonl",
+            "report": "validation_report.xlsx",
+        }
+
+        # Component initialization (Dependency Injection)
+        self.__file_handler = JSONLHandler()
+        self.__extractor = PDFExtractor(self.__pdf_file)
+        self.__metadata_parser = MetadataParser(
+            self.__pdf_file, self.__file_paths["metadata"]
+        )
+        self.__toc_parser = TOCParser()
+        self.__section_parser = SectionParser(
+            pdf_path=self.__pdf_file,
+            toc_file=self.__file_paths["toc"],
+            pages_file=self.__file_paths["pages"],
+        )
+
+        # The sequence of pipeline steps
+        self.__pipeline_steps: List[
+            Tuple[str, Callable[[], Any]]
+        ] = self.__initialize_pipeline_steps()
+
     @property
     def pipeline_status(self) -> Dict[str, Any]:
-        """Get comprehensive pipeline status."""
+        """Return a dictionary with the current status of the pipeline."""
         return {
-            "current_step": self._current_step,
-            "total_steps": len(self._pipeline_steps),
-            "completed_steps": self._current_step,
+            "current_step": self.__current_step,
+            "total_steps": len(self.__pipeline_steps),
             "status": self.status,
-            "results_available": bool(self._results)
+            "results_available": bool(self.__results),
         }
-    
+
     @property
     def results(self) -> Dict[str, Any]:
-        """Get pipeline execution results."""
-        return self._results.copy()
-    
+        """Return a copy of the pipeline's execution results."""
+        return self.__results.copy()
+
     def run_pipeline(self) -> None:
-        """Execute the complete PDF processing pipeline."""
+        """complete PDF processing pipeline from start to finish."""
         self._set_status("running")
-        
         try:
-            print(f"Starting PDF processing pipeline for: {self._pdf_file}")
-            
-            self._execute_pipeline_steps()
-            self._finalize_pipeline()
-            
+            print(f"Starting PDF processing pipeline for:{self.__pdf_file}")
+            self.__execute_pipeline_steps()
+            self.__finalize_pipeline()
         except Exception as e:
-            self._handle_pipeline_error(e)
+            self.__handle_pipeline_error(e)
             raise
-    
-    def _initialize_pipeline_steps(self) -> None:
-        """Initialize the sequence of pipeline steps."""
-        self._pipeline_steps = [
-            ("metadata_extraction", self._extract_metadata),
-            ("pdf_text_extraction", self._extract_pdf_text),
-            ("toc_parsing", self._parse_toc),
-            ("section_parsing", self._parse_sections),
-            ("validation_report", self._generate_validation_report)
+
+    def __initialize_pipeline_steps(self) -> List[Tuple[str, Callable[[], Any]]]:
+        """Define the sequence of steps to be executed in the pipeline."""
+        return [
+            ("PDF Text Extraction", self.__extract_pdf_text),
+            ("Metadata Extraction", self.__extract_metadata),
+            ("TOC Parsing", self.__parse_toc),
+            ("Section Parsing", self.__parse_sections),
+            ("Validation Report", self.__generate_validation_report),
         ]
-    
-    def _execute_pipeline_steps(self) -> None:
-        """Execute all pipeline steps in sequence."""
-        for step_name, step_function in self._pipeline_steps:
-            self._execute_single_step(step_name, step_function)
-    
-    def _execute_single_step(self, step_name: str, step_function) -> None:
-        """Execute a single pipeline step."""
-        print(f"Executing step {self._current_step + 1}/"
-              f"{len(self._pipeline_steps)}: {step_name}")
-        
+
+    def __execute_pipeline_steps(self) -> None:
+        """Execute all defined pipeline steps in sequence."""
+        for step_name, step_function in self.__pipeline_steps:
+            self.__execute_single_step(step_name, step_function)
+
+    def __execute_single_step(
+        self, step_name: str, step_function: Callable[[], Any]
+    ) -> None:
+        """Execute a single step of the pipeline and store its result."""
+        print(
+            f"Executing step {self.__current_step + 1}/"
+            f"{len(self.__pipeline_steps)}: {step_name}"
+        )
         result = step_function()
-        self._results[step_name] = result
-        self._current_step += 1
-        
+        self.__results[step_name] = result
+        self.__current_step += 1
         if result is None:
-            print(f"Warning: Step '{step_name}' returned no result")
-    
-    def _extract_metadata(self) -> Optional[Dict[str, Any]]:
-        """Step 1: Extract document metadata."""
+            print(f"Warning: Step '{step_name}' returned no result.")
+
+    def __extract_pdf_text(self) -> Optional[int]:
+        """Step 1: Extract text from all pages of the PDF."""
         try:
-            parser = MetadataParser(self._pdf_file, "usb_pd_metadata.jsonl")
-            return parser.parse_metadata()
-        except Exception as e:
-            print(f"Metadata extraction failed: {e}")
-            return None
-    
-    def _extract_pdf_text(self) -> Optional[int]:
-        """Step 2: Extract text from all PDF pages."""
-        try:
-            extractor = PDFExtractor(self._pdf_file)
-            return extractor.dump_all_pages_jsonl("usb_pd_pages.jsonl")
+            return self.__extractor.dump_all_pages_jsonl(
+                self.__file_paths["pages"]
+            )
         except Exception as e:
             print(f"PDF text extraction failed: {e}")
             return None
-    
-    def _parse_toc(self) -> Optional[List[Dict]]:
-        """Step 3: Parse table of contents."""
+
+    def __extract_metadata(self) -> Optional[Dict[str, Any]]:
+        """Step 2: Extract document metadata."""
         try:
-            pages_for_toc = self._load_toc_pages()
-            doc_title = self._get_document_title()
-            
-            parser = TOCParser(doc_title)
-            toc_entries = parser.parse_toc(pages_for_toc)
-            
-            # Save TOC entries
-            self._file_handler.write_jsonl("usb_pd_toc.jsonl", toc_entries)
-            
+            return self.__metadata_parser.parse_metadata()
+        except Exception as e:
+            print(f"Metadata extraction failed: {e}")
+            return None
+
+    def __parse_toc(self) -> Optional[List[Dict[str, Any]]]:
+        """Step 3: Parse the Table of Contents."""
+        try:
+            pages_for_toc = self.__load_toc_pages()
+            self.__toc_parser.doc_title = self.__get_document_title()
+            toc_entries = self.__toc_parser.parse_toc(pages_for_toc)
+            self.__file_handler.write_jsonl(
+                self.__file_paths["toc"], toc_entries
+            )
             return toc_entries
         except Exception as e:
             print(f"TOC parsing failed: {e}")
             return None
-    
-    def _parse_sections(self) -> Optional[List[Dict]]:
-        """Step 4: Parse document sections."""
+
+    def __parse_sections(self) -> Optional[List[Dict[str, Any]]]:
+        """Step 4: Parse the main document sections."""
         try:
-            toc_entries = self._results.get("toc_parsing", [])
-            
-            parser = SectionParser(
-                pdf_path=self._pdf_file,
-                toc_file="usb_pd_toc.jsonl",
-                pages_file="usb_pd_pages.jsonl"
+            toc_entries = self.__results.get("TOC Parsing", [])
+            return self.__section_parser.parse_sections(
+                toc_entries, self.__file_paths["spec"]
             )
-            
-            return parser.parse_sections(toc_entries, "usb_pd_spec.jsonl")
         except Exception as e:
             print(f"Section parsing failed: {e}")
             return None
-    
-    def _generate_validation_report(self) -> Optional[Dict[str, Any]]:
-        """Step 5: Generate validation report."""
+
+    def __generate_validation_report(self) -> Optional[Dict[str, Any]]:
+        """Step 5: Generate the final validation report."""
         try:
             return ReportGenerator.generate_validation_report(
-                "usb_pd_toc.jsonl", 
-                "usb_pd_spec.jsonl",
-                "usb_pd_pages.jsonl",
-                "validation_report.xlsx"
+                toc_file=self.__file_paths["toc"],
+                spec_file=self.__file_paths["spec"],
+                pages_file=self.__file_paths["pages"],
+                output_excel=self.__file_paths["report"],
             )
         except Exception as e:
             print(f"Validation report generation failed: {e}")
             return None
-    
-    def _load_toc_pages(self) -> List[Dict]:
-        """Load pages for TOC parsing (first 60 pages)."""
+
+    def __load_toc_pages(self) -> List[Dict[str, Any]]:
+        """Load the first 60 pages, which typically contain the TOC."""
         return [
-            page for page in self._file_handler.read_jsonl("usb_pd_pages.jsonl")
+            page
+            for page in self.__file_handler.read_jsonl(
+                self.__file_paths["pages"]
+            )
             if page.get("page", 0) <= 60
         ]
-    
-    def _get_document_title(self) -> str:
-        """Get document title from metadata or use default."""
-        metadata = self._results.get("metadata_extraction", {})
-        return (metadata.get("doc_title") or 
-                "Universal Serial Bus Power Delivery Specification")
-    
-    def _finalize_pipeline(self) -> None:
-        """Finalize pipeline execution."""
+
+    def __get_document_title(self) -> str:
+        """document title from the parsed metadata, with a fallback."""
+        metadata = self.__results.get("Metadata Extraction", {})
+        return metadata.get(
+            "doc_title",
+            "Universal Serial Bus Power Delivery Specification"
+        )
+
+    def __finalize_pipeline(self) -> None:
+        """updating its status ,printing a success message."""
         self._set_status("completed")
         self._increment_processed()
         print("Pipeline completed successfully!")
-    
-    def _handle_pipeline_error(self, error: Exception) -> None:
-        """Handle pipeline execution errors."""
+
+    def __handle_pipeline_error(self, error: Exception) -> None:
+        """Handle any error that causes the pipeline to fail."""
         self._set_status("error")
         self._increment_errors()
-        print(f"Pipeline failed at step {self._current_step + 1}: {error}")
+        print(
+            f"Pipeline failed at step {self.__current_step + 1}: {error}"
+        )
 
 
 def main() -> None:
