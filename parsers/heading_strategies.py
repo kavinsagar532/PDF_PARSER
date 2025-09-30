@@ -121,7 +121,9 @@ class AllCapsHeadingStrategy(BaseHeadingStrategy):
 
     def __has_sufficient_caps(self, line: str) -> bool:
         """Check if the line contains a minimum number of uppercase letters."""
-        upper_count = sum(1 for char in line if char.isalpha() and char.isupper())
+        upper_count = sum(
+            1 for char in line if char.isalpha() and char.isupper()
+        )
         return upper_count >= self.__min_alpha_chars
 
     def __calculate_upper_ratio(self, text: str) -> float:
@@ -129,7 +131,9 @@ class AllCapsHeadingStrategy(BaseHeadingStrategy):
         alpha_chars = sum(1 for char in text if char.isalpha())
         if alpha_chars == 0:
             return 0.0
-        upper_chars = sum(1 for char in text if char.isalpha() and char.isupper())
+        upper_chars = sum(
+            1 for char in text if char.isalpha() and char.isupper()
+        )
         return upper_chars / alpha_chars
 
 
@@ -177,7 +181,10 @@ class MixedCapHeadingStrategy(BaseHeadingStrategy):
 
     def __count_capitalized_words(self, words: List[str]) -> int:
         """Count words that start with a capital letter or digit."""
-        return sum(1 for word in words if word and (word[0].isupper() or word[0].isdigit()))
+        return sum(
+            1 for word in words 
+            if word and (word[0].isupper() or word[0].isdigit())
+        )
 
     def __calculate_capitalization_ratio(self, words: List[str]) -> float:
         """Calculate the ratio of capitalized words to total words."""
@@ -189,7 +196,10 @@ class MixedCapHeadingStrategy(BaseHeadingStrategy):
 class HeadingDetector:
     """A composite class that manages and applies heading strategies."""
 
-    def __init__(self,strategies:Optional[List[HeadingStrategyInterface]]=None):
+    def __init__(
+            self, 
+            strategies: Optional[List[HeadingStrategyInterface]] = None
+    ):
         self.__strategies = strategies or self.__create_default_strategies()
         self.__total_detections = 0
 

@@ -34,7 +34,8 @@ class CoverageCalculator:
     def calculate_comprehensive_coverage(
         self, pages_data: List[Dict[str, Any]], total_pages: int
     ) -> Dict[str, float]:
-        """Calculate comprehensive coverage metrics including tables, images, etc."""
+        """Calculate comprehensive coverage metrics including tables, 
+        images, etc."""
         self.__calculations_performed += 1
         
         metrics = {
@@ -70,7 +71,8 @@ class CoverageCalculator:
             
             # Annotation coverage
             metadata = page.get('metadata', {})
-            if metadata.get('annotations') and len(metadata['annotations']) > 0:
+            annotations = metadata.get('annotations')
+            if annotations and len(annotations) > 0:
                 pages_with_annotations += 1
             
             # Layout coverage
@@ -79,11 +81,23 @@ class CoverageCalculator:
                 pages_with_layout += 1
         
         # Calculate percentages
-        metrics['text_coverage'] = self.__safe_percentage_calculation(pages_with_text, total_pages)
-        metrics['table_coverage'] = self.__safe_percentage_calculation(pages_with_tables, total_pages)
-        metrics['image_coverage'] = self.__safe_percentage_calculation(pages_with_images, total_pages)
-        metrics['annotation_coverage'] = self.__safe_percentage_calculation(pages_with_annotations, total_pages)
-        metrics['layout_coverage'] = self.__safe_percentage_calculation(pages_with_layout, total_pages)
+        metrics['text_coverage'] = self.__safe_percentage_calculation(
+            pages_with_text, total_pages
+        )
+        metrics['table_coverage'] = self.__safe_percentage_calculation(
+            pages_with_tables, total_pages
+        )
+        metrics['image_coverage'] = self.__safe_percentage_calculation(
+            pages_with_images, total_pages
+        )
+        metrics['annotation_coverage'] = (
+            self.__safe_percentage_calculation(
+                pages_with_annotations, total_pages
+            )
+        )
+        metrics['layout_coverage'] = self.__safe_percentage_calculation(
+            pages_with_layout, total_pages
+        )
         
         # Overall coverage (weighted average)
         metrics['overall_coverage'] = (
@@ -187,11 +201,14 @@ class CoverageCalculator:
         # Calculate metrics
         quality_metrics['pages_with_content'] = pages_with_content
         quality_metrics['average_content_length'] = (
-            total_content_length / pages_with_content if pages_with_content > 0 else 0
+            total_content_length / pages_with_content 
+            if pages_with_content > 0 else 0
         )
         quality_metrics['content_diversity_score'] = len(content_types)
-        quality_metrics['extraction_completeness'] = self.__safe_percentage_calculation(
-            pages_with_content, len(pages_data)
+        quality_metrics['extraction_completeness'] = (
+            self.__safe_percentage_calculation(
+                pages_with_content, len(pages_data)
+            )
         )
         
         return quality_metrics

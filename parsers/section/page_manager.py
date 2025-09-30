@@ -50,8 +50,11 @@ class PageManager:
         ]
         return "\n".join(content_parts).strip()
     
-    def get_comprehensive_content_range(self, start_page: int, end_page: int) -> str:
-        """Return comprehensive content including text, tables, and images for a page range."""
+    def get_comprehensive_content_range(
+            self, start_page: int, end_page: int
+    ) -> str:
+        """Return comprehensive content including text, tables, and images 
+        for a page range."""
         start = max(1, start_page)
         end = min(self.total_pages, end_page)
         
@@ -63,8 +66,11 @@ class PageManager:
         content_parts = [part for part in content_parts if part is not None]
         return "\n\n=== PAGE BREAK ===\n\n".join(content_parts).strip()
     
-    def get_comprehensive_page_content(self, page_number: int) -> str:
-        """Return comprehensive content for a single page including all extracted data."""
+    def get_comprehensive_page_content(
+            self, page_number: int
+    ) -> str:
+        """Return comprehensive content for a single page including 
+        all extracted data."""
         page_data = self.__pages_by_number.get(page_number)
         if not page_data:
             return ""
@@ -86,7 +92,8 @@ class PageManager:
             tables = page_data.get('tables', [])
             if tables:
                 table_content = "\n".join([
-                    f"Table {table.get('table_id', i+1)}:\n{table.get('text_representation', '') or ''}"
+                    f"Table {table.get('table_id', i+1)}:\n" +
+                    f"{table.get('text_representation', '') or ''}"
                     for i, table in enumerate(tables)
                     if table.get('text_representation', '') or ''
                 ])
@@ -97,7 +104,8 @@ class PageManager:
             images = page_data.get('images', [])
             if images:
                 image_content = "\n".join([
-                    f"Image {img.get('image_id', i+1)}: {img.get('name', 'unnamed')} "
+                    f"Image {img.get('image_id', i+1)}: " +
+                    f"{img.get('name', 'unnamed')} "
                     f"({img.get('width', 0)}x{img.get('height', 0)})"
                     for i, img in enumerate(images)
                 ])
@@ -107,25 +115,34 @@ class PageManager:
             layout = page_data.get('layout', {})
             if layout and layout.get('text_lines'):
                 layout_content = "\n".join([
-                    (line.get('text', '') or '') for line in layout.get('text_lines', [])
+                    (line.get('text', '') or '') 
+                    for line in layout.get('text_lines', [])
                     if (line.get('text', '') or '').strip()
                 ])
                 if layout_content and layout_content.strip():
-                    content_parts.append(f"=== LAYOUT TEXT ===\n{layout_content}")
+                    content_parts.append(
+                        f"=== LAYOUT TEXT ===\n{layout_content}"
+                    )
             
             # Add annotations
             metadata = page_data.get('metadata', {})
             annotations = metadata.get('annotations', [])
             if annotations:
                 annot_content = "\n".join([
-                    f"Annotation ({annot.get('type', 'unknown')}): {annot.get('content', '') or ''}"
-                    for annot in annotations if (annot.get('content', '') or '').strip()
+                    f"Annotation ({annot.get('type', 'unknown')}): " +
+                    f"{annot.get('content', '') or ''}"
+                    for annot in annotations 
+                    if (annot.get('content', '') or '').strip()
                 ])
                 if annot_content and annot_content.strip():
-                    content_parts.append(f"=== ANNOTATIONS ===\n{annot_content}")
+                    content_parts.append(
+                        f"=== ANNOTATIONS ===\n{annot_content}"
+                    )
             
             # Filter out any None values and return joined content
-            safe_content_parts = [part for part in content_parts if part is not None]
+            safe_content_parts = [
+                part for part in content_parts if part is not None
+            ]
             return "\n\n".join(safe_content_parts)
         
         return str(page_data)

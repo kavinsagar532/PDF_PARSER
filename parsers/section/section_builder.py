@@ -57,7 +57,8 @@ class SectionBuilder:
     def build_comprehensive_page_section(
         self, page_number: int, content: str, heading: Optional[str] = None
     ) -> Section:
-        """Build a comprehensive `Section` object with enhanced content analysis."""
+        """Build a comprehensive `Section` object with enhanced 
+        content analysis."""
         title = heading or f"Enhanced Page {page_number}"
         
         # Ensure content is not None
@@ -97,7 +98,9 @@ class SectionBuilder:
         }
         return analysis
     
-    def __generate_content_tags(self, content: str, analysis: Dict[str, Any]) -> List[str]:
+    def __generate_content_tags(
+            self, content: str, analysis: Dict[str, Any]
+    ) -> List[str]:
         """Generate tags based on content analysis."""
         tags = ['enhanced_extraction']
         

@@ -149,7 +149,8 @@ class TOCParser(BaseParser, TOCParserInterface):
         for page_num, line in lines:
             # Primary extraction using high-quality regex patterns
             entry = self.__extract_single_entry(line)
-            if self.__is_valid_entry(entry) and self.__is_high_quality_entry(entry):
+            if (self.__is_valid_entry(entry) and 
+                    self.__is_high_quality_entry(entry)):
                 final_entry = self.__create_toc_entry(entry)
                 toc_entries.append(final_entry)
                 self.__parsing_stats["entries_found"] += 1
