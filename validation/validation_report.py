@@ -174,16 +174,6 @@ class Validator(BaseProcessor,
                     pages_with_text, total_pages
                 )
             ),
-            "TOC Coverage (%)": (
-                self.__coverage_calculator.calculate_toc_coverage(
-                    toc_pages_covered, total_pages
-                )
-            ),
-            "Section Coverage (%)": (
-                self.__coverage_calculator.calculate_section_coverage(
-                    len(sections), pages_with_text
-                )
-            ),
         }
 
     def __validate_metadata_status(
@@ -222,7 +212,6 @@ class Validator(BaseProcessor,
         self._set_status("completed")
         self._increment_processed()
         print(f"Validation report generated: {self.__output_path}")
-        print("Summary:", summary)
 
     def __handle_report_generation_error(self, error: Exception) -> None:
         """Log an error that occurs during the report generation process."""

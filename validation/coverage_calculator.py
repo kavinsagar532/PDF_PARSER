@@ -30,6 +30,71 @@ class CoverageCalculator:
         """Calculate the percentage of pages that contain text."""
         self.__calculations_performed += 1
         return self.__safe_percentage_calculation(pages_with_text, total_pages)
+    
+    def calculate_comprehensive_coverage(
+        self, pages_data: List[Dict[str, Any]], total_pages: int
+    ) -> Dict[str, float]:
+        """Calculate comprehensive coverage metrics including tables, images, etc."""
+        self.__calculations_performed += 1
+        
+        metrics = {
+            'text_coverage': 0.0,
+            'table_coverage': 0.0,
+            'image_coverage': 0.0,
+            'annotation_coverage': 0.0,
+            'layout_coverage': 0.0,
+            'overall_coverage': 0.0
+        }
+        
+        if not pages_data or total_pages == 0:
+            return metrics
+        
+        pages_with_text = 0
+        pages_with_tables = 0
+        pages_with_images = 0
+        pages_with_annotations = 0
+        pages_with_layout = 0
+        
+        for page in pages_data:
+            # Text coverage
+            if page.get('text', '').strip():
+                pages_with_text += 1
+            
+            # Table coverage
+            if page.get('tables') and len(page['tables']) > 0:
+                pages_with_tables += 1
+            
+            # Image coverage
+            if page.get('images') and len(page['images']) > 0:
+                pages_with_images += 1
+            
+            # Annotation coverage
+            metadata = page.get('metadata', {})
+            if metadata.get('annotations') and len(metadata['annotations']) > 0:
+                pages_with_annotations += 1
+            
+            # Layout coverage
+            layout = page.get('layout', {})
+            if layout.get('text_lines') and len(layout['text_lines']) > 0:
+                pages_with_layout += 1
+        
+        # Calculate percentages
+        metrics['text_coverage'] = self.__safe_percentage_calculation(pages_with_text, total_pages)
+        metrics['table_coverage'] = self.__safe_percentage_calculation(pages_with_tables, total_pages)
+        metrics['image_coverage'] = self.__safe_percentage_calculation(pages_with_images, total_pages)
+        metrics['annotation_coverage'] = self.__safe_percentage_calculation(pages_with_annotations, total_pages)
+        metrics['layout_coverage'] = self.__safe_percentage_calculation(pages_with_layout, total_pages)
+        
+        # Overall coverage (weighted average)
+        metrics['overall_coverage'] = (
+            metrics['text_coverage'] * 0.4 +
+            metrics['table_coverage'] * 0.2 +
+            metrics['image_coverage'] * 0.2 +
+            metrics['annotation_coverage'] * 0.1 +
+            metrics['layout_coverage'] * 0.1
+        )
+        
+        return metrics
 
     def calculate_toc_coverage(
         self, covered_pages: int, total_pages: int
@@ -57,6 +122,79 @@ class CoverageCalculator:
         )
         self.__calculations_performed += 1
         return len(covered_pages)
+    
+    def calculate_content_quality_score(
+        self, pages_data: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """Calculate content quality metrics for the extracted data."""
+        self.__calculations_performed += 1
+        
+        quality_metrics = {
+            'total_pages': len(pages_data),
+            'pages_with_content': 0,
+            'average_content_length': 0,
+            'content_diversity_score': 0,
+            'extraction_completeness': 0
+        }
+        
+        if not pages_data:
+            return quality_metrics
+        
+        total_content_length = 0
+        content_types = set()
+        pages_with_content = 0
+        
+        for page in pages_data:
+            page_has_content = False
+            page_content_length = 0
+            
+            # Check text content
+            text = page.get('text', '') or ''
+            if text.strip():
+                page_has_content = True
+                page_content_length += len(text)
+                content_types.add('text')
+            
+            # Check tables
+            tables = page.get('tables', [])
+            if tables:
+                page_has_content = True
+                content_types.add('tables')
+                for table in tables:
+                    table_text = table.get('text_representation', '') or ''
+                    page_content_length += len(table_text)
+            
+            # Check images
+            images = page.get('images', [])
+            if images:
+                page_has_content = True
+                content_types.add('images')
+            
+            # Check annotations
+            metadata = page.get('metadata', {})
+            annotations = metadata.get('annotations', [])
+            if annotations:
+                page_has_content = True
+                content_types.add('annotations')
+                for annot in annotations:
+                    annot_content = annot.get('content', '') or ''
+                    page_content_length += len(annot_content)
+            
+            if page_has_content:
+                pages_with_content += 1
+                total_content_length += page_content_length
+        
+        # Calculate metrics
+        quality_metrics['pages_with_content'] = pages_with_content
+        quality_metrics['average_content_length'] = (
+            total_content_length / pages_with_content if pages_with_content > 0 else 0
+        )
+        quality_metrics['content_diversity_score'] = len(content_types)
+        quality_metrics['extraction_completeness'] = self.__safe_percentage_calculation(
+            pages_with_content, len(pages_data)
+        )
+        
+        return quality_metrics
 
     def __safe_percentage_calculation(
         self, numerator: int, denominator: int

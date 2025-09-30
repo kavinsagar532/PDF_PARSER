@@ -82,10 +82,15 @@ class MetadataParser(BaseParser, MetadataParserInterface):
     def __initialize_patterns(self) -> Dict[str, str]:
         """Define the regex patterns for finding metadata fields."""
         return {
-            "doc_title": r"(Universal Serial Bus.*Power Delivery Specification)",
+            "doc_title": (
+                r"(Universal Serial Bus.*Power Delivery Specification)"
+            ),
             "revision": r"(?:Revision|Rev\.?)[: ]+\s*([0-9.]+)",
             "version": r"(?:Version|V)\s*[:]?\s*([0-9.]+)",
-            "release_date": r"(?:Release Date|Published:?)\s*[:]?\s*([0-9]{4}(?:-[0-9]{1,2})?)",
+            "release_date": (
+                r"(?:Release Date|Published:?)\s*[:]?\s*"
+                r"([0-9]{4}(?:-[0-9]{1,2})?)"
+            ),
         }
 
     def __initialize_extraction_config(self) -> Dict[str, Any]:
@@ -125,13 +130,15 @@ class MetadataParser(BaseParser, MetadataParserInterface):
 
     def __save_metadata(self, metadata: Dict[str, Any]) -> None:
         """Save the extracted metadata to the output JSONL file."""
-        self.__file_handler.write_jsonl(self.__output_file, [metadata], mode="w")
+        self.__file_handler.write_jsonl(
+            self.__output_file, [metadata], mode="w"
+        )
 
     def __finalize_parsing(self) -> None:
         """Update the status and counters to finalize the parsing."""
         self._set_status("completed")
         self._increment_processed()
-        print(f"Metadata extracted and saved to {self.__output_file}")
+        # Metadata extraction completed
 
     def __is_valid_file_path(self, file_path: str) -> bool:
         """Check if the provided file path is a non-empty string."""

@@ -208,7 +208,7 @@ class HeadingDetector:
 
     def detect_heading(self, text_line: str) -> Optional[str]:
         """Find the best matching heading for a line of text."""
-        if not text_line:
+        if not text_line or text_line is None:
             return None
 
         clean_line = text_line.strip()

@@ -58,7 +58,6 @@ class JSONLHandler(FileIOInterface):
                     written_count += 1
             
             self.__files_written += 1
-            print(f"Saved {written_count} entries to {file_path}")
             return written_count
 
         except (IOError, json.JSONEncodeError) as e:

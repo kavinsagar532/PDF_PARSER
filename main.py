@@ -18,6 +18,7 @@ from parsers.metadata_parser import MetadataParser
 from parsers.section_parser import SectionParser
 from parsers.toc_parser import TOCParser
 from validation.validation_report import ReportGenerator
+from validation.coverage_calculator import CoverageCalculator
 
 
 class PDFPipeline(BaseProcessor, PipelineInterface):
@@ -55,6 +56,7 @@ class PDFPipeline(BaseProcessor, PipelineInterface):
             toc_file=self.__file_paths["toc"],
             pages_file=self.__file_paths["pages"],
         )
+        self.__coverage_calculator = CoverageCalculator()
 
         # The sequence of pipeline steps
         self.__pipeline_steps: List[
@@ -80,14 +82,16 @@ class PDFPipeline(BaseProcessor, PipelineInterface):
         """complete PDF processing pipeline from start to finish."""
         self._set_status("running")
         try:
-            print(f"Starting PDF processing pipeline for:{self.__pdf_file}")
+            print(f"Processing: {self.__pdf_file}")
             self.__execute_pipeline_steps()
             self.__finalize_pipeline()
         except Exception as e:
             self.__handle_pipeline_error(e)
             raise
 
-    def __initialize_pipeline_steps(self) -> List[Tuple[str, Callable[[], Any]]]:
+    def __initialize_pipeline_steps(
+        self
+    ) -> List[Tuple[str, Callable[[], Any]]]:
         """Define the sequence of steps to be executed in the pipeline."""
         return [
             ("PDF Text Extraction", self.__extract_pdf_text),
@@ -106,15 +110,10 @@ class PDFPipeline(BaseProcessor, PipelineInterface):
         self, step_name: str, step_function: Callable[[], Any]
     ) -> None:
         """Execute a single step of the pipeline and store its result."""
-        print(
-            f"Executing step {self.__current_step + 1}/"
-            f"{len(self.__pipeline_steps)}: {step_name}"
-        )
+        print(f"Step {self.__current_step + 1}/5: {step_name}")
         result = step_function()
         self.__results[step_name] = result
         self.__current_step += 1
-        if result is None:
-            print(f"Warning: Step '{step_name}' returned no result.")
 
     def __extract_pdf_text(self) -> Optional[int]:
         """Step 1: Extract text from all pages of the PDF."""
@@ -143,31 +142,51 @@ class PDFPipeline(BaseProcessor, PipelineInterface):
             self.__file_handler.write_jsonl(
                 self.__file_paths["toc"], toc_entries
             )
+            
             return toc_entries
         except Exception as e:
             print(f"TOC parsing failed: {e}")
             return None
 
     def __parse_sections(self) -> Optional[List[Dict[str, Any]]]:
-        """Step 4: Parse the main document sections."""
+        """Step 4: Parse the main document sections with enhancement."""
         try:
             toc_entries = self.__results.get("TOC Parsing", [])
-            return self.__section_parser.parse_sections(
+            # Ensure toc_entries is a list, not None
+            if toc_entries is None:
+                toc_entries = []
+                print(
+                    "Warning: TOC parsing returned None, using empty list "
+                    "for section parsing"
+                )
+            
+            sections = self.__section_parser.parse_sections(
                 toc_entries, self.__file_paths["spec"]
             )
+            
+            return sections
         except Exception as e:
             print(f"Section parsing failed: {e}")
             return None
 
     def __generate_validation_report(self) -> Optional[Dict[str, Any]]:
-        """Step 5: Generate the final validation report."""
+        """Step 5: Generate the enhanced validation report with
+        comprehensive coverage metrics."""
         try:
-            return ReportGenerator.generate_validation_report(
+            # Generate traditional report
+            report = ReportGenerator.generate_validation_report(
                 toc_file=self.__file_paths["toc"],
                 spec_file=self.__file_paths["spec"],
                 pages_file=self.__file_paths["pages"],
                 output_excel=self.__file_paths["report"],
             )
+            
+            # Add enhanced coverage analysis
+            enhanced_report = self.__generate_enhanced_coverage_report()
+            if enhanced_report:
+                report.update(enhanced_report)
+            
+            return report
         except Exception as e:
             print(f"Validation report generation failed: {e}")
             return None
@@ -191,10 +210,18 @@ class PDFPipeline(BaseProcessor, PipelineInterface):
         )
 
     def __finalize_pipeline(self) -> None:
-        """updating its status ,printing a success message."""
+        """Finalize pipeline with clean summary reporting."""
         self._set_status("completed")
         self._increment_processed()
-        print("Pipeline completed successfully!")
+        
+        # Print clean completion summary
+        print("\nPDF PROCESSING COMPLETED")
+        print("-" * 40)
+        
+        # Print only essential counts
+        self.__print_clean_summary()
+        
+        print("-" * 40)
 
     def __handle_pipeline_error(self, error: Exception) -> None:
         """Handle any error that causes the pipeline to fail."""
@@ -203,24 +230,81 @@ class PDFPipeline(BaseProcessor, PipelineInterface):
         print(
             f"Pipeline failed at step {self.__current_step + 1}: {error}"
         )
+    
+    def __generate_enhanced_coverage_report(self) -> Optional[Dict[str, Any]]:
+        """Generate enhanced coverage metrics using the new analyzers."""
+        try:
+            # Load extracted pages data
+            pages_data = list(
+                self.__file_handler.read_jsonl(self.__file_paths["pages"])
+            )
+            if not pages_data:
+                return None
+            
+            total_pages = len(pages_data)
+            
+            # Calculate comprehensive coverage
+            comprehensive_coverage = (
+                self.__coverage_calculator.calculate_comprehensive_coverage(
+                    pages_data, total_pages
+                )
+            )
+            
+            # Calculate content quality metrics  
+            quality_metrics = (
+                self.__coverage_calculator.calculate_content_quality_score(
+                    pages_data
+                )
+            )
+            
+            enhanced_report = {
+                'enhanced_coverage_metrics': comprehensive_coverage,
+                'content_quality_metrics': quality_metrics,
+            }
+            
+            return enhanced_report
+            
+        except Exception as e:
+            return None
+    
+    def __print_clean_summary(self) -> None:
+        """Print a clean, essential summary."""
+        try:
+            def count_jsonl_records(filename):
+                try:
+                    with open(filename, 'r', encoding='utf-8') as f:
+                        return sum(1 for line in f if line.strip())
+                except Exception:
+                    return 0
+            
+            toc_count = count_jsonl_records(self.__file_paths["toc"])
+            spec_count = count_jsonl_records(self.__file_paths["spec"])
+            pages_count = count_jsonl_records(self.__file_paths["pages"])
+            
+            print(f"\nFINAL RESULTS:")
+            print(f"  TOC Parsing: {toc_count}")
+            print(f"  Section Parsing: {spec_count}")
+            print(f"  PDF Text Extraction: {pages_count}")
+                    
+        except Exception as e:
+            print(f"Error printing summary: {e}")
+    
 
 
 def main() -> None:
-    """Main entry point for the application."""
+    """Enhanced main entry point with clean output."""
     try:
         pdf_path = "USB_PD_R3_2 V1.1 2024-10.pdf"
+        print("Enhanced PDF Processing Pipeline")
+        
         pipeline = PDFPipeline(pdf_path)
         pipeline.run_pipeline()
         
-        # Print final status
-        status = pipeline.pipeline_status
-        print(f"\nPipeline Status: {status}")
-        
     except KeyboardInterrupt:
-        print("\nPipeline interrupted by user")
+        print("Pipeline interrupted by user")
         sys.exit(1)
     except Exception as e:
-        print(f"\nPipeline failed with error: {e}")
+        print(f"Pipeline failed with error: {e}")
         sys.exit(1)
 
 
