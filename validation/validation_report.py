@@ -1,7 +1,10 @@
 """Validation and report generation with improved OOP design."""
 
 # Standard library imports
+<<<<<<< HEAD
 import json
+=======
+>>>>>>> 5b0ab6fc108d8079218d81114d8ff14d143bd12b
 import os
 from typing import Any, Dict, List
 
@@ -192,6 +195,7 @@ class Validator(BaseProcessor,
         try:
             df = pd.DataFrame([summary])
             df.to_excel(self.__output_path, index=False)
+<<<<<<< HEAD
         except PermissionError:
             json_path = self.__output_path.replace(".xlsx", ".json")
             try:
@@ -200,6 +204,8 @@ class Validator(BaseProcessor,
                 print(f"Saved report as JSON instead: {json_path}")
             except Exception as json_e:
                 print(f"Failed to save fallback JSON report: {json_e}")
+=======
+>>>>>>> 5b0ab6fc108d8079218d81114d8ff14d143bd12b
         except Exception as e:
             self.__handle_excel_save_error(e, summary)
 

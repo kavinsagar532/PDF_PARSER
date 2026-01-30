@@ -7,7 +7,11 @@ system adhere to a consistent API.
 
 # Standard library imports
 from abc import ABC, abstractmethod
+<<<<<<< HEAD
 from typing import Any, Dict, Generator, Iterable, List, Optional, Protocol, runtime_checkable
+=======
+from typing import Any, Dict, Generator, Iterable, List, Optional
+>>>>>>> 5b0ab6fc108d8079218d81114d8ff14d143bd12b
 
 
 class ProcessorInterface(ABC):
@@ -175,6 +179,7 @@ class PipelineInterface(ABC):
     def pipeline_status(self) -> Dict[str, Any]:
         """Return the current status of the pipeline."""
         raise NotImplementedError
+<<<<<<< HEAD
 
 
 @runtime_checkable
@@ -222,3 +227,5 @@ class DescribableInterface(ABC):
     def describe(self) -> str:
         """Return a human-readable description."""
         raise NotImplementedError
+=======
+>>>>>>> 5b0ab6fc108d8079218d81114d8ff14d143bd12b

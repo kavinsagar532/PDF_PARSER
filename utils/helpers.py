@@ -8,9 +8,13 @@ wrapper class.
 # Standard library imports
 import json
 import os
+<<<<<<< HEAD
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any, Dict, Generator, Iterable, Protocol, runtime_checkable
+=======
+from typing import Any, Dict, Generator, Iterable
+>>>>>>> 5b0ab6fc108d8079218d81114d8ff14d143bd12b
 
 # Local imports
 from core.interfaces import FileIOInterface
@@ -142,6 +146,7 @@ class Helper(JSONLHandler):
         """A static wrapper for `JSONLHandler.read_jsonl`."""
         handler = JSONLHandler()
         return handler.read_jsonl(filename)
+<<<<<<< HEAD
 
 
 @dataclass(frozen=True)
@@ -182,3 +187,5 @@ class DefaultFileOperationFactory(FileOperationFactory):
 
     def create(self, path: str, mode: str, encoding: str) -> FileOperation:
         return FileOperation(path=path, mode=mode, encoding=encoding)
+=======
+>>>>>>> 5b0ab6fc108d8079218d81114d8ff14d143bd12b

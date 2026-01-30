@@ -7,7 +7,10 @@ They are designed to be extended by concrete parser processor components.
 
 # Standard library imports
 from abc import ABC, abstractmethod
+<<<<<<< HEAD
 from dataclasses import dataclass
+=======
+>>>>>>> 5b0ab6fc108d8079218d81114d8ff14d143bd12b
 from typing import Any, Dict, Optional
 
 # Local imports
@@ -120,6 +123,7 @@ class BaseParser(BaseProcessor, ParserInterface, ABC):
         self._increment_errors()
         self._set_status("error")
         print(f"Error in {context}: {error}")
+<<<<<<< HEAD
 
 
 @dataclass(frozen=True)
@@ -148,3 +152,5 @@ class DescribableMixin(ABC):
     def describe(self) -> str:
         """Return a human-readable description for the component."""
         raise NotImplementedError
+=======
+>>>>>>> 5b0ab6fc108d8079218d81114d8ff14d143bd12b
